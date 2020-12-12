@@ -21,9 +21,11 @@ async def hello(websocket, path):
     while True:
         data = await websocket.recv()
         loaded = json.loads(data)
-        loaded["isMyMessage"] = False
-        loaded["key"] = str(cur_user.uuid)
-        loaded["message"]["isMyMessage"] = False
+        if loaded["type"] == "message":
+            loaded["data"]["isMyMessage"] = False
+            loaded["data"]["key"] = str(cur_user.uuid)
+            loaded["data"]["message"]["isMyMessage"] = False
+
         print("GOT DATA", data)
         for user in users.copy():
             if cur_user.uuid != user.uuid:
@@ -32,10 +34,13 @@ async def hello(websocket, path):
                     await user.web.send(json.dumps(loaded))
                 except Exception as e:
                     users.remove(user)
+                    print(e)
                     pass
 
 
-start_server = websockets.serve(hello, "127.0.0.1", 8765)
+header = {'Access-Control-Allow-Origin': '*'}
+
+start_server = websockets.serve(hello, "127.0.0.1", 8765, extra_headers=header)
 
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
